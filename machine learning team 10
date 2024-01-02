@@ -1,0 +1,504 @@
+期中模型修正
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def inspect_columns(df):
+    # A helper function that does a better job than df.info() and df.describe()
+    result = pd.DataFrame({
+        'unique': df.nunique() == len(df),
+        'cardinality': df.nunique(),
+        'with_null': df.isna().any(),
+        'null_pct': round((df.isnull().sum() / len(df)) * 100, 2),
+        '1st_row': df.iloc[0],
+        'random_row': df.iloc[np.random.randint(low=0, high=len(df))],
+        'last_row': df.iloc[-1],
+        'dtype': df.dtypes
+    })
+    return result
+
+file_path = "C:\\Users\\User\\OneDrive\\桌面\\機器學習\\期末\\train.csv"
+
+Xy_train = pd.read_csv(file_path)
+print(Xy_train.head())
+
+result_Xy_train = inspect_columns(Xy_train)
+print(result_Xy_train)
+
+print(result_Xy_train)
+result_Xy_train.to_csv("Xy_train_inspection_result.csv", index=False)
+
+data = {'target'}
+
+df = pd.read_csv(file_path)
+
+# 計算 TARGET 中負值的占比
+negative_percentage = (df['target'] < 0).mean() * 100
+
+# 計算 'target' 欄位的算術平均數
+mean_value = df['target'].mean()
+
+# 計算 'target' 欄位的中位數
+median_value = df['target'].median()
+
+# 計算 'target' 欄位的變異數
+variance_value = df['target'].var()
+std_dev = df['target'].std()
+
+# 定義閾值，假設超過三個標準差的值為離群值
+threshold = 3 * std_dev
+# 刪除離群值
+df_no_outliers = df[(df['target'] >= mean_value - threshold) & (df['target'] <= mean_value + threshold)].reset_index(drop=True)
+
+print(f"The percentage of negative values in TARGET is: {negative_percentage:.2f}")
+print(f"The mean of 'target' column is: {mean_value:.2f}")
+print(f"The median of 'target' column is: {median_value:.2f}")
+print(f"The variance of 'target' column is: {variance_value:.2f}")
+
+# 印出去除離群值後的統計信息
+print("Statistics after removing outliers:")
+print(df_no_outliers.describe())
+print(f"The mean of 'target' column after removing outliers is: {df_no_outliers['target'].mean():.2f}")
+
+max_value = max(df['target'].max(), df_no_outliers['target'].max())
+min_value = min(df['target'].min(), df_no_outliers['target'].min())
+
+# 繪製第一張圖
+plt.yticks(np.arange(min_value, max_value+1, step=5))  # 替換為你想要的 Y 軸刻度值
+plt.plot(df['time_id'], df['target'], marker='o', linestyle='-', markersize=1)
+plt.title('Target Variable Over Time')
+plt.xlabel('Time ID')
+plt.ylabel('Target Values')
+plt.show()
+
+# 繪製第二張圖
+plt.yticks(np.arange(min_value, max_value+1, step=5))  # 替換為你想要的 Y 軸刻度值
+plt.plot(df_no_outliers['time_id'], df_no_outliers['target'], marker='o', linestyle='-', markersize=1)
+plt.title('Target Variable Over Time (Outliers Removed)')
+plt.xlabel('Time ID')
+plt.ylabel('Target Values')
+plt.show()
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import pandas as pd
+
+# 提取數據
+selected_features = ['wap', 'matched_size', 'reference_price', 'imbalance_buy_sell_flag', 'imbalance_size','target','time_id']
+df_selected = df[selected_features]
+
+# 移除包含缺失值的行
+df_selected = df_selected.dropna()
+
+# 將時間序列轉換為數值
+df_selected['time_id'] = pd.to_numeric(df_selected['time_id'])
+
+# 拆分數據
+X = df_selected[['wap', 'matched_size', 'reference_price', 'imbalance_buy_sell_flag', 'imbalance_size','target','time_id']]  # 特徵變數
+y = df_selected['target']  # 目標變數
+
+# 標準化特徵
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 拆分數據
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# 建立線性迴歸模型
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 預測
+y_pred = model.predict(X_test)
+
+# 評估性能
+mse = mean_squared_error(y_test, y_pred)
+print(f"均方誤差（MSE）: {mse}")
+
+# 取得標準化後的模型係數
+coefficients_scaled = model.coef_
+print("標準化後的模型係數:")
+print(coefficients_scaled)
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 讀取 Excel 檔案
+df = pd.read_csv("C:/Users/User/PycharmProjects/pythonProject/train_processed.csv")
+
+# 提取資料
+selected_features = ['wap', 'matched_size','far_price','near_price','bid_price','bid_size', 'reference_price', 'imbalance_buy_sell_flag', 'imbalance_size', 'target']
+df_selected = df[selected_features]
+
+# 移除包含缺失值的行
+df_selected = df_selected.dropna()
+
+# 計算相關係數矩陣
+correlation_matrix = df_selected.corr()
+
+# 目標變量與其他變量的相關係數
+target_correlation = df_selected.corrwith(df_selected['target'])
+
+# 提取總相關係數
+total_correlation = np.corrcoef(df_selected[selected_features], rowvar=False)[0, -1]
+
+# 顯示相關係數矩陣
+print("相關係數矩陣:")
+print(correlation_matrix)
+
+# 顯示目標變量與其他變量的相關係數
+print("\n目標變量與其他變量的相關係數:")
+print(target_correlation)
+
+# 顯示總相關係數
+print(f"\n總相關係數: {total_correlation}")
+
+# 繪製散點圖
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 10))
+for i in range(6):
+    row = i // 3
+    col = i % 3
+    axes[row, col].scatter(df_selected[selected_features[i]], df_selected['target'], alpha=0.5)
+    axes[row, col].set_title(f'{selected_features[i]} vs target\nCorrelation: {target_correlation[selected_features[i]]:.2f}')
+    axes[row, col].set_xlabel(selected_features[i])
+    axes[row, col].set_ylabel('target')
+
+plt.tight_layout()
+plt.show()
+
+# 讀取 Excel 檔案
+df = pd.read_csv("C:/Users/User/PycharmProjects/pythonProject/train_processed.csv")
+
+# 生成新特徵
+df['Combined_Bid_Ask'] = df['ask_price'] + df['bid_size']
+df['Imbalance_Index'] = (df['bid_size'] - df['ask_price']) / (df['bid_size'] + df['ask_price'])
+df['Relative_Size'] = df['bid_size'] / df['ask_size']
+df['Midpoint_Price'] = (df['bid_price'] + df['ask_price']) / 2
+
+# 刪除原有特徵
+df = df.drop(['bid_price', 'bid_size', 'ask_price', 'ask_size'], axis=1)
+
+# 儲存新的資料
+df.to_csv("train新特徵生成", index=False)
+
+特徵工程
+import pandas as pd
+import numpy as np
+# 讀取 Excel 檔案
+df = pd.read_csv("C:/Users/User/PycharmProjects/pythonProject/train_processed.csv")
+
+# 生成新特徵
+df['Combined_Bid_Ask'] = df['ask_price'] + df['bid_size']
+df['Imbalance_Index'] = (df['bid_size'] - df['ask_price']) / (df['bid_size'] + df['ask_price'])
+df['Relative_Size'] = df['bid_size'] / df['ask_size']
+df['Midpoint_Price'] = (df['bid_price'] + df['ask_price']) / 2
+
+# 刪除原有特徵
+df = df.drop(['bid_price', 'bid_size', 'ask_price', 'ask_size'], axis=1)
+
+# 儲存新的資料
+df.to_csv("train新特徵生成.csv", index=False)
+
+import pandas as pd
+import numpy as np
+
+# 讀取測試集的 Excel 檔案
+test_df = pd.read_csv("C:/Users/User/OneDrive/桌面/test.csv")
+
+# 生成新特徵
+test_df['Combined_Bid_Ask'] = test_df['ask_price'] + test_df['bid_size']
+test_df['Imbalance_Index'] = (test_df['bid_size'] - test_df['ask_price']) / (test_df['bid_size'] + test_df['ask_price'])
+test_df['Relative_Size'] = test_df['bid_size'] / test_df['ask_size']
+test_df['Midpoint_Price'] = (test_df['bid_price'] + test_df['ask_price']) / 2
+
+# 刪除原有特徵
+test_df = test_df.drop(['bid_price', 'bid_size', 'ask_price', 'ask_size'], axis=1)
+
+# 儲存新的資料
+test_df.to_csv("test新特徵生成.csv", index=False)
+
+缺失值填充、RFE選擇器
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+# 读取包含所有特征的数据
+file_path = "train新特徵生成.csv"
+df_combined = pd.read_csv(file_path)
+
+# 提取特征和目标变量
+features = ['wap', 'matched_size', 'far_price', 'near_price', 'reference_price',
+            'imbalance_buy_sell_flag', 'imbalance_size', 'Combined_Bid_Ask',
+            'Imbalance_Index', 'Relative_Size', 'Midpoint_Price']
+target = 'target'  # 请替换为实际的目标变量名称
+
+X_combined = df_combined[features]
+y_combined = df_combined[target]
+
+# 删除包含缺失值的行
+combined_data_no_missing = df_combined.dropna(subset=features + [target])
+
+# 提取新的特征和目标变量
+X_combined_no_missing = combined_data_no_missing[features]
+y_combined_no_missing = combined_data_no_missing[target]
+
+# 拆分数据集为训练集和测试集
+X_train_combined_no_missing, X_test_combined_no_missing, y_train_combined_no_missing, y_test_combined_no_missing = train_test_split(
+    X_combined_no_missing, y_combined_no_missing, test_size=0.2, random_state=42)
+
+# 标准化特征
+scaler_combined_no_missing = StandardScaler()
+X_train_scaled_combined_no_missing = scaler_combined_no_missing.fit_transform(X_train_combined_no_missing)
+X_test_scaled_combined_no_missing = scaler_combined_no_missing.transform(X_test_combined_no_missing)
+
+# 建立线性回归模型
+model_combined_no_missing = LinearRegression()
+model_combined_no_missing.fit(X_train_scaled_combined_no_missing, y_train_combined_no_missing)
+
+
+## 预测
+y_pred_combined = model_combined_no_missing.predict(X_test_scaled_combined_no_missing)
+
+# 评估性能
+mse_combined = mean_squared_error(y_test_combined_no_missing, y_pred_combined)
+print(f"均方误差（MSE）: {mse_combined}")
+
+# 获取标准化后的模型系数
+coefficients_combined = model_combined_no_missing.coef_
+print("标准化后的模型系数:")
+print(coefficients_combined)
+from sklearn.feature_selection import RFE
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+
+# 读取包含所有特征的数据
+file_path = "train新特徵生成.csv"
+df_combined = pd.read_csv(file_path)
+
+# 提取特征和目标变量
+features = ['wap', 'matched_size', 'far_price', 'near_price', 'reference_price',
+            'imbalance_buy_sell_flag', 'imbalance_size', 'Combined_Bid_Ask',
+            'Imbalance_Index', 'Relative_Size', 'Midpoint_Price']
+target = 'target'  # 请替换为实际的目标变量名称
+
+X_combined = df_combined[features]
+y_combined = df_combined[target]
+
+# 使用 SimpleImputer 处理缺失值
+imputer = SimpleImputer(strategy='mean')  # 也可以选择其他策略，如'median'或'most_frequent'
+X_combined_imputed = pd.DataFrame(imputer.fit_transform(X_combined), columns=features)
+
+# 创建基本模型
+model = LinearRegression()
+
+## 合并特征和目标变量，然后删除包含 NaN 的行
+combined_data_no_missing = pd.concat([X_combined_imputed, y_combined], axis=1).dropna()
+
+# 提取新的特征和目标变量
+X_combined_no_missing = combined_data_no_missing[features]
+y_combined_no_missing = combined_data_no_missing[target]
+
+# 创建 RFE 选择器
+rfe = RFE(model, n_features_to_select=5)
+
+# 拟合 RFE 选择器
+rfe.fit(X_combined_no_missing, y_combined_no_missing)
+
+# 获取选定的特征和排名
+selected_features = X_combined_no_missing.columns[rfe.support_]
+feature_ranking = rfe.ranking_
+
+# 打印结果
+print("Selected Features:", selected_features)
+print("Feature Ranking:", feature_ranking)
+
+XGboost、LightGBM、投票驗證
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import numpy as np
+from sklearn.feature_selection import RFE
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+import pandas as pd
+
+# 读取包含所有特征的数据
+file_path = "train新特徵生成.csv"
+df_combined = pd.read_csv(file_path)
+
+# 提取特征和目标变量
+features = ['wap', 'matched_size', 'far_price', 'near_price', 'reference_price',
+            'imbalance_buy_sell_flag', 'imbalance_size', 'Combined_Bid_Ask',
+            'Imbalance_Index', 'Relative_Size', 'Midpoint_Price']
+target = 'target'  # 请替换为实际的目标变量名称
+
+X_combined = df_combined[features]
+y_combined = df_combined[target]
+
+# 使用 SimpleImputer 处理缺失值
+imputer = SimpleImputer(strategy='mean')  # 也可以选择其他策略，如'median'或'most_frequent'
+X_combined_imputed = pd.DataFrame(imputer.fit_transform(X_combined), columns=features)
+
+# 创建基本模型
+model = LinearRegression()
+
+## 合并特征和目标变量，然后删除包含 NaN 的行
+combined_data_no_missing = pd.concat([X_combined_imputed, y_combined], axis=1).dropna()
+
+# 提取新的特征和目标变量
+X_combined_no_missing = combined_data_no_missing[features]
+y_combined_no_missing = combined_data_no_missing[target]
+
+# 创建 RFE 选择器
+rfe = RFE(model, n_features_to_select=5)
+
+# 拟合 RFE 选择器
+rfe.fit(X_combined_no_missing, y_combined_no_missing)
+
+# 获取选定的特征和排名
+selected_features = X_combined_no_missing.columns[rfe.support_]
+feature_ranking = rfe.ranking_
+
+# 打印结果
+print("Selected Features:", selected_features)
+print("Feature Ranking:", feature_ranking)
+
+# 拆分數據集為訓練集和測試集
+X_train, X_test, y_train, y_test = train_test_split(
+    X_combined_no_missing, y_combined_no_missing, test_size=0.2, random_state=42
+)
+
+# 使用排名給特徵設置權重
+feature_weights = np.array([1, 7, 2, 1, 1, 3, 6, 5, 1, 4, 1])
+feature_weights = 1 / feature_weights  # 取倒數作為權重，你可以根據需要進行調整
+
+# 設置 LightGBM 參數
+params = {
+    'objective': 'regression',
+    'metric': 'mse',
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+}
+
+# 使用 LightGBM 模型
+lgb_model = lgb.LGBMRegressor(**params)
+
+# 交叉验证
+cv_mse = cross_val_score(lgb_model, X_combined_no_missing, y_combined_no_missing,
+                         cv=5, scoring='neg_mean_squared_error')
+
+# 打印交叉验证的均方誤差
+print("Cross-Validation MSE:", -cv_mse.mean())
+
+# 訓練模型
+lgb_model.fit(
+    X_train * feature_weights, y_train,  # 使用訓練數據和特徵權重
+    eval_set=[((X_test * feature_weights), y_test)],  # 使用測試數據和特徵權重
+    eval_metric='mse',
+)
+
+# 預測
+y_pred_lgb = lgb_model.predict(X_test * feature_weights)
+
+# 重新計算特徵重要性（使用訓練數據的權重）
+original_feature_importance = lgb_model.feature_importances_
+weighted_feature_importance = original_feature_importance * feature_weights
+
+# 打印均方誤差
+mse_lgb = mean_squared_error(y_test, y_pred_lgb)
+print(f"LightGBM 均方誤差（MSE）: {mse_lgb}")
+
+# 打印 MAE
+mae_lgb = mean_absolute_error(y_test, y_pred_lgb)
+print(f"LightGBM 平均絕對誤差（MAE）: {mae_lgb}")
+
+# 打印特徵重要性
+print("Weighted Feature Importance:", weighted_feature_importance)
+
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.impute import SimpleImputer
+import numpy as np
+import pandas as pd
+
+# 读取包含所有特征的数据
+file_path = "train新特徵生成.csv"
+df_combined = pd.read_csv(file_path)
+
+# 提取特征和目标变量
+features = ['wap', 'matched_size', 'far_price', 'near_price', 'reference_price',
+            'imbalance_buy_sell_flag', 'imbalance_size', 'Combined_Bid_Ask',
+            'Imbalance_Index', 'Relative_Size', 'Midpoint_Price']
+target = 'target'  # 请替换为实际的目标变量名称
+
+X_combined = df_combined[features]
+y_combined = df_combined[target]
+
+# 使用 SimpleImputer 处理缺失值
+imputer = SimpleImputer(strategy='mean')
+y_combined_imputed = imputer.fit_transform(y_combined.values.reshape(-1, 1)).ravel()
+
+# 拆分数据集为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(
+    X_combined, y_combined_imputed, test_size=0.2, random_state=42
+)
+
+# 创建 XGBoost 模型
+xgb_model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=100)
+
+# 训练 XGBoost 模型
+xgb_model.fit(X_train, y_train)
+
+# 预测
+y_pred_xgb = xgb_model.predict(X_test)
+
+# 打印均方误差
+mse_xgb = mean_squared_error(y_test, y_pred_xgb)
+print(f"XGBoost 均方误差（MSE）: {mse_xgb}")
+
+# 打印平均绝对误差
+mae_xgb = mean_absolute_error(y_test, y_pred_xgb)
+print(f"XGBoost 平均绝对误差（MAE）: {mae_xgb}")
+
+from sklearn.ensemble import VotingRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+# 创建 LightGBM 模型
+lgb_model = lgb.LGBMRegressor(**params)
+
+# 创建 XGBoost 模型
+xgb_model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=100)
+
+# 创建投票模型
+voting_model = VotingRegressor(estimators=[
+    ('lgb', lgb_model),
+    ('xgb', xgb_model)
+], weights=[1, 1])  # 根据需要调整模型的权重
+
+# 拆分数据集为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(
+    X_combined_no_missing, y_combined_no_missing, test_size=0.2, random_state=42
+)
+
+# 训练投票模型
+voting_model.fit(X_train * feature_weights, y_train)
+
+# 预测
+y_pred_voting = voting_model.predict(X_test * feature_weights)
+
+# 打印均方误差
+mse_voting = mean_squared_error(y_test, y_pred_voting)
+print(f"Voting 均方误差（MSE）: {mse_voting}")
+
+# 打印平均绝对误差
+mae_voting = mean_absolute_error(y_test, y_pred_voting)
+print(f"Voting 平均绝对误差（MAE）: {mae_voting}")
